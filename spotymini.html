@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpotyMini Ultra</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<style>
+
+body{
+    margin:0;
+    font-family:Arial,Helvetica,sans-serif;
+    background:linear-gradient(180deg,#1db954,#121212);
+    color:white;
+}
+
+header{
+    padding:20px;
+    font-size:28px;
+    font-weight:bold;
+}
+
+main{
+    padding:20px;
+    padding-bottom:150px;
+}
+
+h2{
+    margin-top:40px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:#181818;
+    padding:15px;
+    border-radius:15px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.card:hover{
+    background:#282828;
+    transform:scale(1.05);
+}
+
+.card img{
+    width:100%;
+    border-radius:10px;
+}
+
+.card h4{
+    margin:10px 0 5px 0;
+}
+
+.card p{
+    margin:0;
+    font-size:14px;
+    color:#bbb;
+}
+
+.player{
+    position:fixed;
+    bottom:0;
+    width:100%;
+    background:#181818;
+    display:flex;
+    align-items:center;
+    padding:10px;
+    gap:15px;
+}
+
+.player img{
+    width:60px;
+    height:60px;
+    border-radius:10px;
+}
+
+.player-info{
+    flex:1;
+}
+
+.controls button{
+    background:none;
+    border:none;
+    color:white;
+    font-size:28px;
+    cursor:pointer;
+}
+
+.progress{
+    height:5px;
+    background:#333;
+    flex:2;
+    cursor:pointer;
+    border-radius:5px;
+    overflow:hidden;
+}
+
+.progress-bar{
+    height:100%;
+    width:0%;
+    background:#1db954;
+}
+
+input[type=range]{
+    width:100px;
+}
+
+input[type=text]{
+    padding:10px;
+    width:100%;
+    border-radius:10px;
+    border:none;
+    margin-bottom:20px;
+}
+
+.upload{
+    margin-top:20px;
+}
+
+</style>
+</head>
+<body>
+
+<header>🎵 SpotyMini Ultra</header>
+
+<main>
+
+<input type="text" id="search" placeholder="Suche nach Song...">
+
+<h2>Meine Songs</h2>
+<div id="songGrid" class="grid"></div>
+
+<div class="upload">
+<input type="file" id="fileInput" multiple accept="audio/*">
+</div>
+
+</main>
+
+<div class="player">
+<img id="cover" src="https://picsum.photos/200">
+<div class="player-info">
+<div id="title">Kein Song</div>
+<div id="artist" style="font-size:13px;color:#aaa;">---</div>
+</div>
+
+<div class="controls">
+<button onclick="prevSong()"><span class="material-icons-round">skip_previous</span></button>
+<button onclick="togglePlay()"><span id="playIcon" class="material-icons-round">play_arrow</span></button>
+<button onclick="nextSong()"><span class="material-icons-round">skip_next</span></button>
+<button onclick="toggleShuffle()"><span class="material-icons-round">shuffle</span></button>
+<button onclick="toggleRepeat()"><span class="material-icons-round">repeat</span></button>
+</div>
+
+<div class="progress" onclick="seek(event)">
+<div class="progress-bar" id="progressBar"></div>
+</div>
+
+<input type="range" min="0" max="1" step="0.01" value="1" id="volume">
+
+</div>
+
+<audio id="audio"></audio>
+
+<script>
+
+let songs=[
+{title:"Helix Song 1",artist:"Demo",audio:"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",cover:"https://picsum.photos/300?1"},
+{title:"Helix Song 2",artist:"Demo",audio:"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",cover:"https://picsum.photos/300?2"},
+{title:"Helix Song 3",artist:"Demo",audio:"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",cover:"https://picsum.photos/300?3"},
+{title:"Helix Song 4",artist:"Demo",audio:"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",cover:"https://picsum.photos/300?4"},
+{title:"Helix Song 5",artist:"Demo",audio:"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",cover:"https://picsum.photos/300?5"}
+];
+
+let currentIndex=0;
+let shuffle=false;
+let repeat=false;
+
+const audio=document.getElementById("audio");
+const grid=document.getElementById("songGrid");
+const progressBar=document.getElementById("progressBar");
+const playIcon=document.getElementById("playIcon");
+
+function renderSongs(filter=""){
+grid.innerHTML="";
+songs
+.filter(s=>s.title.toLowerCase().includes(filter.toLowerCase()))
+.forEach((song,index)=>{
+let card=document.createElement("div");
+card.className="card";
+card.innerHTML=`
+<img src="${song.cover}">
+<h4>${song.title}</h4>
+<p>${song.artist}</p>
+`;
+card.onclick=()=>playSong(index);
+grid.appendChild(card);
+});
+}
+
+renderSongs();
+
+function playSong(index){
+currentIndex=index;
+let song=songs[index];
+audio.src=song.audio;
+audio.play();
+document.getElementById("title").innerText=song.title;
+document.getElementById("artist").innerText=song.artist;
+document.getElementById("cover").src=song.cover;
+playIcon.innerText="pause";
+}
+
+function togglePlay(){
+if(!audio.src) return;
+if(audio.paused){
+audio.play();
+playIcon.innerText="pause";
+}else{
+audio.pause();
+playIcon.innerText="play_arrow";
+}
+}
+
+function nextSong(){
+if(shuffle){
+currentIndex=Math.floor(Math.random()*songs.length);
+}else{
+currentIndex=(currentIndex+1)%songs.length;
+}
+playSong(currentIndex);
+}
+
+function prevSong(){
+currentIndex=(currentIndex-1+songs.length)%songs.length;
+playSong(currentIndex);
+}
+
+function toggleShuffle(){
+shuffle=!shuffle;
+}
+
+function toggleRepeat(){
+repeat=!repeat;
+}
+
+audio.addEventListener("ended",()=>{
+if(repeat){
+audio.currentTime=0;
+audio.play();
+}else{
+nextSong();
+}
+});
+
+audio.addEventListener("timeupdate",()=>{
+if(audio.duration){
+let percent=(audio.currentTime/audio.duration)*100;
+progressBar.style.width=percent+"%";
+}
+});
+
+function seek(e){
+let rect=e.currentTarget.getBoundingClientRect();
+let percent=(e.clientX-rect.left)/rect.width;
+audio.currentTime=percent*audio.duration;
+}
+
+document.getElementById("volume").addEventListener("input",e=>{
+audio.volume=e.target.value;
+});
+
+document.getElementById("fileInput").addEventListener("change",e=>{
+Array.from(e.target.files).forEach(file=>{
+if(file.type.startsWith("audio/")){
+songs.push({
+title:file.name.replace(".mp3",""),
+artist:"Eigener Song",
+audio:URL.createObjectURL(file),
+cover:"https://picsum.photos/300?random="+Math.random()
+});
+}
+});
+renderSongs();
+});
+
+document.getElementById("search").addEventListener("input",e=>{
+renderSongs(e.target.value);
+});
+
+</script>
+
+</body>
+</html>
